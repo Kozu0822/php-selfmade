@@ -36,7 +36,7 @@ class Reservation extends Model
 
     public function symptom(): BelongsTo
     {
-        return $this->belongsTo(Symptom::class);
+        return $this->belongsTo(Symptom::class)->withTrashed();
     }
 
     public function timeSlot(): BelongsTo
@@ -46,7 +46,7 @@ class Reservation extends Model
 
     public function parts(): BelongsToMany
     {
-        return $this->belongsToMany(Part::class)->withTimestamps();
+        return $this->belongsToMany(Part::class)->withTrashed()->withTimestamps();
     }
 
     public function statusLabel(): string

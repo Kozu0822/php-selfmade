@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reservation;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class MypageController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $this->markNoShowReservations();
 
@@ -16,8 +17,16 @@ class MypageController extends Controller
             ->with(['device', 'symptom', 'timeSlot'])
             ->latest()
             ->get();
+        $selectedReservation = null;
 
-        return view('mypage.index', compact('reservations'));
+        if ($request->query('reservation_id')) {
+            $selectedReservation = Auth::user()
+                ->reservations()
+                ->with(['user', 'device', 'symptom', 'timeSlot'])
+                ->find($request->query('reservation_id'));
+        }
+
+        return view('mypage.index', compact('reservations', 'selectedReservation'));
     }
 
     private function markNoShowReservations(): void

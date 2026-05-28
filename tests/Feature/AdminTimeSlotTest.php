@@ -106,7 +106,7 @@ class AdminTimeSlotTest extends TestCase
             ->post("/admin/time-slots/{$timeSlot->id}/delete")
             ->assertRedirect('/admin?tab=time_slots');
 
-        $this->assertDatabaseMissing('time_slots', [
+        $this->assertSoftDeleted('time_slots', [
             'id' => $timeSlot->id,
         ]);
     }
@@ -209,6 +209,31 @@ class AdminTimeSlotTest extends TestCase
         $this->assertSame('cancelled_by_admin', $reservation->fresh()->status);
         $this->assertFalse($reservation->timeSlot->fresh()->is_reserved);
         $this->assertSame(2, $part->fresh()->stock);
+    }
+
+    public function test_admin_can_view_reservation_detail_modal_from_reservation_list(): void
+    {
+        $admin = $this->createAdmin();
+        $customer = $this->createCustomer();
+        $device = Device::create(['name' => 'iPhone 13']);
+        $symptom = Symptom::create(['name' => '画面割れ']);
+        $reservation = $this->createReservation($customer, $device, $symptom, '2026-06-01 10:30:00', 'pending');
+
+        $this->actingAs($admin)
+            ->get('/admin?tab=reservations')
+            ->assertOk()
+            ->assertSee('詳細を見る')
+            ->assertDontSee('キャンセル');
+
+        $this->actingAs($admin)
+            ->get('/admin?tab=reservations&reservation_id='.$reservation->id)
+            ->assertOk()
+            ->assertSee('予約詳細')
+            ->assertSee($customer->name)
+            ->assertSee($device->name)
+            ->assertSee($symptom->name)
+            ->assertSee('予約中')
+            ->assertSee('キャンセル');
     }
 
     private function createAdmin(): User

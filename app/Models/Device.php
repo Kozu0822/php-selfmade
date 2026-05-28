@@ -24,4 +24,16 @@ class Device extends Model
     {
         return $this->hasMany(Reservation::class);
     }
+
+    public function parts(): HasMany
+    {
+        return $this->hasMany(Part::class);
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return !$this->reservations()
+            ->whereIn('status', ['pending', 'no_show'])
+            ->exists();
+    }
 }

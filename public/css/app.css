@@ -291,6 +291,12 @@
             flex-wrap: wrap;
         }
 
+        .text-muted {
+            color: #888;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
         .table {
             width: 100%;
             border-collapse: collapse;
@@ -307,6 +313,39 @@
         .admin-panel .table th,
         .admin-panel .table td {
             white-space: nowrap;
+        }
+
+        .disabled-row td {
+            color: #999;
+            text-decoration: line-through;
+        }
+
+        .disabled-row .inline-actions,
+        .disabled-row .inline-actions * {
+            text-decoration: none;
+        }
+
+        .checkbox-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 16px;
+            text-align: left;
+        }
+
+        .checkbox-list label {
+            display: inline-flex;
+            justify-content: flex-start;
+            width: fit-content;
+            gap: 8px;
+            align-items: center;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .stacked-text {
+            display: grid;
+            gap: 4px;
+            line-height: 1.45;
         }
 
         .empty {
@@ -904,5 +943,3 @@
                 gap: 6px;
             }
         }
-
-

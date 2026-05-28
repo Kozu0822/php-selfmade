@@ -31,4 +31,11 @@ class Part extends Model
     {
         return $this->belongsToMany(Reservation::class)->withTimestamps();
     }
+
+    public function canBeDeleted(): bool
+    {
+        return !$this->reservations()
+            ->whereIn('status', ['pending', 'no_show'])
+            ->exists();
+    }
 }

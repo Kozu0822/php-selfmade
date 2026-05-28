@@ -49,6 +49,30 @@ class ReservationFlowTest extends TestCase
         $this->assertTrue($data['timeSlot']->fresh()->is_reserved);
     }
 
+    public function test_customer_reservation_decreases_all_required_parts(): void
+    {
+        $data = $this->prepareReservationData();
+        $secondPart = Part::create([
+            'device_id' => $data['device']->id,
+            'name' => '防水シール',
+            'stock' => 3,
+        ]);
+        $secondPart->symptoms()->attach($data['symptom']->id);
+
+        $this->actingAs($data['user']);
+
+        session([
+            'reservation.device_id' => $data['device']->id,
+            'reservation.symptom_id' => $data['symptom']->id,
+            'reservation.time_slot_id' => $data['timeSlot']->id,
+        ]);
+
+        $this->post('/reservations')->assertRedirect('/reservations/complete');
+
+        $this->assertSame(1, $data['part']->fresh()->stock);
+        $this->assertSame(2, $secondPart->fresh()->stock);
+    }
+
     public function test_customer_can_cancel_reservation(): void
     {
         $data = $this->prepareReservationData();
@@ -94,6 +118,34 @@ class ReservationFlowTest extends TestCase
         $this->assertFalse($data['timeSlot']->fresh()->is_reserved);
     }
 
+    public function test_customer_can_view_reservation_detail_modal(): void
+    {
+        $data = $this->prepareReservationData();
+        $this->actingAs($data['user']);
+
+        session([
+            'reservation.device_id' => $data['device']->id,
+            'reservation.symptom_id' => $data['symptom']->id,
+            'reservation.time_slot_id' => $data['timeSlot']->id,
+        ]);
+
+        $this->post('/reservations');
+        $reservation = $data['user']->reservations()->first();
+
+        $this->get('/mypage')
+            ->assertOk()
+            ->assertSee('詳細を見る')
+            ->assertDontSee('キャンセル');
+
+        $this->get('/mypage?reservation_id='.$reservation->id)
+            ->assertOk()
+            ->assertSee('予約詳細')
+            ->assertSee($data['device']->name)
+            ->assertSee($data['symptom']->name)
+            ->assertSee('予約中')
+            ->assertSee('キャンセル');
+    }
+
     public function test_admin_can_cancel_reservation(): void
     {
         $data = $this->prepareReservationData();
@@ -130,6 +182,22 @@ class ReservationFlowTest extends TestCase
 
         $this->actingAs($data['user']);
         session(['reservation.device_id' => $data['device']->id]);
+
+        $this->post('/reservations/symptom', [
+            'symptom_id' => $data['symptom']->id,
+        ])
+            ->assertRedirect('/reservations/symptom')
+            ->assertSessionHasErrors('symptom_id');
+    }
+
+    public function test_customer_cannot_select_repair_symptom_without_required_parts(): void
+    {
+        $data = $this->prepareReservationData();
+        $newDevice = Device::create(['name' => 'iPhone 14 Pro Max']);
+        $newDevice->symptoms()->attach($data['symptom']->id);
+
+        $this->actingAs($data['user']);
+        session(['reservation.device_id' => $newDevice->id]);
 
         $this->post('/reservations/symptom', [
             'symptom_id' => $data['symptom']->id,

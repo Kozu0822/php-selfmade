@@ -45,4 +45,16 @@ Route::middleware('admin')->group(function () {
     Route::post('/admin/time-slots', [DashboardController::class, 'storeTimeSlot'])->name('admin.time_slots.store');
     Route::post('/admin/time-slots/{timeSlot}/toggle', [DashboardController::class, 'toggleTimeSlot'])->name('admin.time_slots.toggle');
     Route::post('/admin/time-slots/{timeSlot}/delete', [DashboardController::class, 'destroyTimeSlot'])->name('admin.time_slots.destroy');
+    Route::post('/admin/devices', [DashboardController::class, 'storeDevice'])->name('admin.devices.store');
+    Route::post('/admin/devices/{device}/update', [DashboardController::class, 'updateDevice'])->name('admin.devices.update');
+    Route::post('/admin/devices/{device}/delete', [DashboardController::class, 'destroyDevice'])->name('admin.devices.destroy');
+    Route::post('/admin/devices/{device}/restore', [DashboardController::class, 'restoreDevice'])->name('admin.devices.restore');
+    Route::post('/admin/symptoms', [DashboardController::class, 'storeSymptom'])->name('admin.symptoms.store');
+    Route::post('/admin/symptoms/{symptom}/update', [DashboardController::class, 'updateSymptom'])->name('admin.symptoms.update');
+    Route::post('/admin/symptoms/{symptom}/delete', [DashboardController::class, 'destroySymptom'])->name('admin.symptoms.destroy');
+    Route::post('/admin/symptoms/{symptom}/restore', [DashboardController::class, 'restoreSymptom'])->name('admin.symptoms.restore');
+    Route::post('/admin/parts', [DashboardController::class, 'storePart'])->name('admin.parts.store');
+    Route::post('/admin/parts/{part}/update', [DashboardController::class, 'updatePart'])->name('admin.parts.update');
+    Route::post('/admin/parts/{part}/delete', [DashboardController::class, 'destroyPart'])->name('admin.parts.destroy');
+    Route::post('/admin/parts/{part}/restore', [DashboardController::class, 'restorePart'])->name('admin.parts.restore');
 });

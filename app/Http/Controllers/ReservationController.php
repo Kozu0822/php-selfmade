@@ -329,6 +329,10 @@ class ReservationController extends Controller
     {
         $parts = $this->partsFor($device, $symptom);
 
+        if ($parts->isEmpty()) {
+            return $symptom->name === '来店相談';
+        }
+
         return !$parts->contains(fn ($part) => $part->stock < 1);
     }
 

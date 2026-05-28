@@ -37,14 +37,9 @@
                                 <span class="{{ $reservation->statusClass() }}">{{ $reservation->statusLabel() }}</span>
                             </td>
                             <td>
-                                @if ($reservation->canBeCancelledByUser())
-                                    <form action="{{ route('reservations.cancel', $reservation) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-danger btn-cancel">キャンセル</button>
-                                    </form>
-                                @else
-                                    <button type="button" class="btn btn-muted btn-cancel" disabled>キャンセル</button>
-                                @endif
+                                <div class="inline-actions">
+                                    <a href="{{ route('mypage.index', ['reservation_id' => $reservation->id]) }}" class="btn btn-secondary btn-small">詳細を見る</a>
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -53,4 +48,14 @@
         @endif
     </section>
 </main>
+
+@if ($selectedReservation)
+    @include('reservations._detail_modal', [
+        'reservation' => $selectedReservation,
+        'showCustomer' => false,
+        'canCancel' => $selectedReservation->canBeCancelledByUser(),
+        'cancelUrl' => route('reservations.cancel', $selectedReservation),
+        'closeUrl' => route('mypage.index'),
+    ])
+@endif
 @endsection
