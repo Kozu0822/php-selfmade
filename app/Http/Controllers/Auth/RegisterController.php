@@ -28,6 +28,7 @@ class RegisterController extends Controller
 
         $messages = [
             'name.required' => 'お名前は必須入力です。',
+            'name.max' => 'お名前は100文字以内で入力してください。',
             'email.required' => 'メールアドレスは必須入力です。',
             'email.email' => 'メールアドレスの形式で入力してください。',
             'email.unique' => 'このメールアドレスは既に登録されています。',
@@ -35,9 +36,12 @@ class RegisterController extends Controller
             'password.min' => 'パスワードは8文字以上で入力してください。',
             'password.confirmed' => 'パスワードが一致しません。',
             'postal_code.required' => '郵便番号は必須入力です。',
+            'postal_code.max' => '郵便番号は8文字以内で入力してください。',
             'postal_code.regex' => '郵便番号は半角数字で入力してください。',
             'address.required' => '住所は必須入力です。',
+            'address.max' => '住所は255文字以内で入力してください。',
             'phone_number.required' => '電話番号は必須入力です。',
+            'phone_number.max' => '電話番号は20文字以内で入力してください。',
             'phone_number.regex' => '電話番号は半角数字で入力してください。',
         ];
 
@@ -60,8 +64,12 @@ class RegisterController extends Controller
             'address' => ['required', 'max:255'],
             'phone_number' => ['required', 'max:20', 'regex:/^[0-9-]+$/'],
         ], [
+            'name.max' => 'お名前は100文字以内で入力してください。',
             'email.unique' => 'このメールアドレスは既に登録されています。',
+            'postal_code.max' => '郵便番号は8文字以内で入力してください。',
             'postal_code.regex' => '郵便番号は半角数字で入力してください。',
+            'address.max' => '住所は255文字以内で入力してください。',
+            'phone_number.max' => '電話番号は20文字以内で入力してください。',
             'phone_number.regex' => '電話番号は半角数字で入力してください。',
         ]);
 
