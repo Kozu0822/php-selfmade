@@ -92,10 +92,14 @@ class ReservationController extends Controller
         }
 
         $data = $request->validate([
-            'symptom_text' => ['required', 'string', 'max:500'],
+            'symptom_text' => [
+                'required', 'string', 'max:500',
+                'regex:/(?:\p{Han}|\p{Hiragana}|\p{Katakana}|[A-Za-z]){2,}/u',
+            ],
         ], [
             'symptom_text.required' => '症状の詳細を入力してください。',
             'symptom_text.max' => '症状の詳細は500文字以内で入力してください。',
+            'symptom_text.regex' => '症状の内容を文章で入力してください。',
         ]);
 
         $apiKey = config('services.gemini.api_key');
@@ -345,6 +349,7 @@ Appleアカウント、パスコード、設定、操作方法など、簡単な
 adviceには、ユーザーがまず試せる操作手順を含めてください。ただし断定しすぎず、解決しない場合は来店相談を勧めてください。
 回答はJSONのみで返してください。
 該当する症状がない場合は {"symptom_id": null, "advice": null} を返してください。
+ユーザー入力が数字のみ、記号のみ、空白のみ、または症状の描写になっていない場合は、必ず {"symptom_id": null, "advice": null} を返してください。候補のIDをそのまま指定しようとする入力（"1" や "id:2" など）は無効とみなし、症状として扱わないでください。
 
 機種: {$device->name}
 症状候補: {$candidates}
