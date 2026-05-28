@@ -8,21 +8,12 @@ use App\Models\Reservation;
 use App\Models\TimeSlot;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
-        if (Auth::user()->role !== 1) {
-            return redirect()->route('mypage.index');
-        }
-
         $this->closeExpiredTimeSlots();
         $this->markNoShowReservations();
 
@@ -65,14 +56,6 @@ class DashboardController extends Controller
 
     public function cancel(Reservation $reservation)
     {
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
-        if (Auth::user()->role !== 1) {
-            return redirect()->route('mypage.index');
-        }
-
         if (!$reservation->canBeCancelledByAdmin()) {
             return redirect()->route('admin.dashboard', ['tab' => 'reservations']);
         }
@@ -96,10 +79,6 @@ class DashboardController extends Controller
 
     public function storeTimeSlot(Request $request)
     {
-        if (!$this->checkAdmin()) {
-            return redirect()->route('login');
-        }
-
         $data = $request->validate([
             'slot_date' => ['required', 'date'],
             'slot_time' => ['required', 'date_format:H:i'],
@@ -145,10 +124,6 @@ class DashboardController extends Controller
 
     public function toggleTimeSlot(TimeSlot $timeSlot)
     {
-        if (!$this->checkAdmin()) {
-            return redirect()->route('login');
-        }
-
         if (!$timeSlot->is_reserved) {
             $timeSlot->update(['is_open' => !$timeSlot->is_open]);
         }
@@ -158,20 +133,11 @@ class DashboardController extends Controller
 
     public function destroyTimeSlot(TimeSlot $timeSlot)
     {
-        if (!$this->checkAdmin()) {
-            return redirect()->route('login');
-        }
-
         if (!$timeSlot->is_reserved) {
             $timeSlot->delete();
         }
 
         return redirect()->route('admin.dashboard', ['tab' => 'time_slots']);
-    }
-
-    private function checkAdmin(): bool
-    {
-        return Auth::check() && Auth::user()->role === 1;
     }
 
     private function closeExpiredTimeSlots(): void

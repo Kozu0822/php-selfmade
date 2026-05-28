@@ -16,10 +16,6 @@ class ReservationController extends Controller
 {
     public function create()
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $devices = Device::orderBy('id')->get();
 
         return view('reservations.device', compact('devices'));
@@ -27,10 +23,6 @@ class ReservationController extends Controller
 
     public function storeDevice(Request $request)
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $data = $request->validate([
             'device_id' => ['required', 'exists:devices,id'],
         ], [
@@ -44,10 +36,6 @@ class ReservationController extends Controller
 
     public function symptom()
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $device = $this->selectedDevice();
         if (!$device) {
             return redirect()->route('reservations.create');
@@ -67,10 +55,6 @@ class ReservationController extends Controller
 
     public function storeSymptom(Request $request)
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $device = $this->selectedDevice();
         if (!$device) {
             return redirect()->route('reservations.create');
@@ -102,10 +86,6 @@ class ReservationController extends Controller
 
     public function suggestSymptom(Request $request)
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $device = $this->selectedDevice();
         if (!$device) {
             return redirect()->route('reservations.create');
@@ -172,10 +152,6 @@ class ReservationController extends Controller
 
     public function time()
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $this->closeExpiredTimeSlots();
 
         $device = $this->selectedDevice();
@@ -196,10 +172,6 @@ class ReservationController extends Controller
 
     public function storeTime(Request $request)
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $this->closeExpiredTimeSlots();
 
         $data = $request->validate([
@@ -222,10 +194,6 @@ class ReservationController extends Controller
 
     public function confirm()
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $device = $this->selectedDevice();
         $symptom = $this->selectedSymptom();
         $timeSlot = $this->selectedTimeSlot();
@@ -239,10 +207,6 @@ class ReservationController extends Controller
 
     public function store()
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         $this->closeExpiredTimeSlots();
 
         $device = $this->selectedDevice();
@@ -291,19 +255,11 @@ class ReservationController extends Controller
 
     public function complete()
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         return view('reservations.complete');
     }
 
     public function cancel(Reservation $reservation)
     {
-        if (!$this->checkCustomer()) {
-            return redirect()->route('login');
-        }
-
         if ($reservation->user_id !== Auth::id() || !$reservation->canBeCancelledByUser()) {
             return redirect()->route('mypage.index');
         }
@@ -323,11 +279,6 @@ class ReservationController extends Controller
         });
 
         return redirect()->route('mypage.index');
-    }
-
-    private function checkCustomer(): bool
-    {
-        return Auth::check() && Auth::user()->role === 0;
     }
 
     private function selectedDevice(): ?Device

@@ -9,14 +9,6 @@ class MypageController extends Controller
 {
     public function index()
     {
-        if (!Auth::check()) {
-            return redirect()->route('login');
-        }
-
-        if (Auth::user()->role === 1) {
-            return redirect()->route('admin.dashboard');
-        }
-
         $this->markNoShowReservations();
 
         $reservations = Auth::user()
