@@ -243,7 +243,6 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', Rule::unique('symptoms', 'name')],
-            'description' => ['nullable', 'string', 'max:500'],
             'device_ids' => ['required', 'array'],
             'device_ids.*' => ['exists:devices,id'],
         ], [
@@ -254,7 +253,6 @@ class DashboardController extends Controller
 
         $symptom = Symptom::create([
             'name' => $data['name'],
-            'description' => $data['description'] ?? null,
         ]);
         $symptom->devices()->sync($data['device_ids']);
 
@@ -265,7 +263,6 @@ class DashboardController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100', Rule::unique('symptoms', 'name')->ignore($symptom->id)],
-            'description' => ['nullable', 'string', 'max:500'],
             'device_ids' => ['required', 'array'],
             'device_ids.*' => ['exists:devices,id'],
         ], [
@@ -276,7 +273,6 @@ class DashboardController extends Controller
 
         $symptom->update([
             'name' => $data['name'],
-            'description' => $data['description'] ?? null,
         ]);
         $symptom->devices()->sync($data['device_ids']);
 

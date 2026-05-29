@@ -483,12 +483,6 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="symptom_description">説明</label>
-                    <textarea name="description" id="symptom_description" class="form-control" rows="3">{{ old('description') }}</textarea>
-                    @error('description')<div class="error" style="text-align: left;">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="form-group">
                     <label>対応端末</label>
                     <div class="checkbox-list">
                         @foreach ($allDevices as $device)
@@ -525,12 +519,6 @@
                     <label for="edit_symptom_name">症状名</label>
                     <input type="text" name="name" id="edit_symptom_name" class="form-control" value="{{ old('name', $selectedSymptom->name) }}">
                     @error('name')<div class="error" style="text-align: left;">{{ $message }}</div>@enderror
-                </div>
-
-                <div class="form-group">
-                    <label for="edit_symptom_description">説明</label>
-                    <textarea name="description" id="edit_symptom_description" class="form-control" rows="3">{{ old('description', $selectedSymptom->description) }}</textarea>
-                    @error('description')<div class="error" style="text-align: left;">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="form-group">

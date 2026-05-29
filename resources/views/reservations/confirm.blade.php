@@ -22,6 +22,20 @@
                 <div>予約時間</div>
                 <div>{{ $timeSlot->slot_at->format('Y年n月j日 H:i') }}</div>
             </div>
+            <div class="confirm-row">
+                <div>必要部品</div>
+                <div>
+                    @if ($parts->isEmpty())
+                        なし
+                    @else
+                        <div class="stacked-text">
+                            @foreach ($parts as $part)
+                                <span>{{ $part->name }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
 
         <form action="{{ route('reservations.store') }}" method="POST">

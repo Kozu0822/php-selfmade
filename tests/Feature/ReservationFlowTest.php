@@ -35,6 +35,11 @@ class ReservationFlowTest extends TestCase
             'time_slot_id' => $data['timeSlot']->id,
         ])->assertRedirect('/reservations/confirm');
 
+        $this->get('/reservations/confirm')
+            ->assertOk()
+            ->assertSee('必要部品')
+            ->assertSee($data['part']->name);
+
         $this->post('/reservations')->assertRedirect('/reservations/complete');
 
         $this->assertDatabaseHas('reservations', [
@@ -142,6 +147,8 @@ class ReservationFlowTest extends TestCase
             ->assertSee('予約詳細')
             ->assertSee($data['device']->name)
             ->assertSee($data['symptom']->name)
+            ->assertSee('必要部品')
+            ->assertSee($data['part']->name)
             ->assertSee('予約中')
             ->assertSee('キャンセル');
     }

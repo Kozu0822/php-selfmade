@@ -26,6 +26,20 @@
                 <dd>{{ $reservation->timeSlot->slot_at->format('Y年n月j日 H:i') }}</dd>
             </div>
             <div class="modal-row">
+                <dt>必要部品</dt>
+                <dd>
+                    @if ($reservation->parts->isEmpty())
+                        なし
+                    @else
+                        <div class="stacked-text">
+                            @foreach ($reservation->parts as $part)
+                                <span>{{ $part->name }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </dd>
+            </div>
+            <div class="modal-row">
                 <dt>状態</dt>
                 <dd><span class="{{ $reservation->statusClass() }}">{{ $reservation->statusLabel() }}</span></dd>
             </div>

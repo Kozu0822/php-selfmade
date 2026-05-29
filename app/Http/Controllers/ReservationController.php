@@ -206,7 +206,9 @@ class ReservationController extends Controller
             return redirect()->route('reservations.create');
         }
 
-        return view('reservations.confirm', compact('device', 'symptom', 'timeSlot'));
+        $parts = $this->partsFor($device, $symptom);
+
+        return view('reservations.confirm', compact('device', 'symptom', 'timeSlot', 'parts'));
     }
 
     public function store()

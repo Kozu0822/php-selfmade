@@ -23,7 +23,6 @@ class AdminSymptomTest extends TestCase
         $this->actingAs($admin)
             ->post('/admin/symptoms', [
                 'name' => 'カメラ故障',
-                'description' => 'カメラが起動しない',
                 'device_ids' => [$device->id],
             ])
             ->assertRedirect('/admin?tab=symptoms');
@@ -32,7 +31,6 @@ class AdminSymptomTest extends TestCase
 
         $this->assertDatabaseHas('symptoms', [
             'name' => 'カメラ故障',
-            'description' => 'カメラが起動しない',
         ]);
         $this->assertTrue($symptom->devices()->where('devices.id', $device->id)->exists());
     }
@@ -47,7 +45,6 @@ class AdminSymptomTest extends TestCase
         $this->actingAs($admin)
             ->post("/admin/symptoms/{$symptom->id}/update", [
                 'name' => '画面割れ修理',
-                'description' => '画面が割れている',
                 'device_ids' => [$device->id],
             ])
             ->assertRedirect('/admin?tab=symptoms');
@@ -55,7 +52,6 @@ class AdminSymptomTest extends TestCase
         $this->assertDatabaseHas('symptoms', [
             'id' => $symptom->id,
             'name' => '画面割れ修理',
-            'description' => '画面が割れている',
         ]);
     }
 

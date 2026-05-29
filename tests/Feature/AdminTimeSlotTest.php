@@ -217,7 +217,13 @@ class AdminTimeSlotTest extends TestCase
         $customer = $this->createCustomer();
         $device = Device::create(['name' => 'iPhone 13']);
         $symptom = Symptom::create(['name' => '画面割れ']);
+        $part = Part::create([
+            'device_id' => $device->id,
+            'name' => 'iPhone 13 画面パネル',
+            'stock' => 3,
+        ]);
         $reservation = $this->createReservation($customer, $device, $symptom, '2026-06-01 10:30:00', 'pending');
+        $reservation->parts()->attach($part->id);
 
         $this->actingAs($admin)
             ->get('/admin?tab=reservations')
@@ -232,6 +238,8 @@ class AdminTimeSlotTest extends TestCase
             ->assertSee($customer->name)
             ->assertSee($device->name)
             ->assertSee($symptom->name)
+            ->assertSee('必要部品')
+            ->assertSee($part->name)
             ->assertSee('予約中')
             ->assertSee('キャンセル');
     }
