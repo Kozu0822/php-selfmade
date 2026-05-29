@@ -624,6 +624,8 @@
             border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
             padding: 28px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
         }
 
         .modal-title {
@@ -931,11 +933,12 @@
 
             .modal-backdrop {
                 align-items: flex-start;
-                padding: 18px 14px;
+                padding: 92px 14px 24px;
             }
 
             .modal {
                 padding: 22px 18px;
+                max-height: calc(100vh - 116px);
             }
 
             .modal-row {

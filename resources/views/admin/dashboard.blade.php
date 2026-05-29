@@ -183,7 +183,7 @@
                                         @else
                                             <a href="{{ route('admin.dashboard', ['tab' => 'devices', 'edit_device' => $device->id]) }}" class="btn btn-secondary btn-small">編集</a>
                                             @if ((int) $device->active_reservations_count === 0)
-                                                <form action="{{ route('admin.devices.destroy', $device) }}" method="POST">
+                                                <form action="{{ route('admin.devices.destroy', $device) }}" method="POST" onsubmit="return confirm('この端末は予約画面に表示されなくなります。よろしいですか？');">
                                                     @csrf
                                                     <button type="submit" class="btn btn-danger btn-small">削除</button>
                                                 </form>
@@ -347,7 +347,7 @@
                                         @else
                                             <a href="{{ route('admin.dashboard', ['tab' => 'parts', 'edit_part' => $part->id]) }}" class="btn btn-secondary btn-small">編集</a>
                                             @if ((int) $part->active_reservations_count === 0)
-                                                <form action="{{ route('admin.parts.destroy', $part) }}" method="POST">
+                                                <form action="{{ route('admin.parts.destroy', $part) }}" method="POST" onsubmit="return confirm('この部品は新規予約の在庫判定に使用されなくなります。よろしいですか？');">
                                                     @csrf
                                                     <button type="submit" class="btn btn-danger btn-small">削除</button>
                                                 </form>
