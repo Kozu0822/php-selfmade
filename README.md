@@ -1,59 +1,88 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 楽ペア（Rakupair）
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Apple 端末の修理店を想定した予約管理システムです。
+PHP 研修の自作課題として、個人で作成しました。
 
-## About Laravel
+顧客は端末・症状・日時を順に選んで修理の予約ができます。
+症状をうまく言葉にできない場合は、文章で入力すると Gemini API が候補の中から近い症状を選びます。
+管理者は管理画面から、予約・予約枠・端末・症状・部品在庫を操作できます。
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 使用技術
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.2 / Laravel 12
+- Blade
+- SQLite
+- Vite
+- PHPUnit 11
+- Google Gemini API
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 主な機能
 
-## Learning Laravel
+顧客
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- 会員登録、ログイン / ログアウト
+- 予約の作成（端末 → 症状 → 日時 → 確認）
+- 症状の自然文入力と、AI による症状の候補表示
+- 予約の一覧・詳細表示
+- 自分の予約のキャンセル
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+管理者
 
-## Laravel Sponsors
+- 予約の一覧・詳細表示、キャンセル
+- 予約枠の追加・開閉・削除
+- 端末・症状・部品の追加・編集・停止・復元、在庫の調整
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 工夫した点
 
-### Premium Partners
+- 同じ予約枠が同時に取られないよう、`time_slots` にバージョン番号を持たせて、予約確定時に一致するかを確認しています。
+- 症状ごとに必要な部品を紐づけていて、在庫が足りない症状は予約できないようにしています。予約時は在庫を減らし、キャンセル時は戻します。
+- AI が返した症状 ID はそのまま使わず、実在するか・選んだ端末の症状か・在庫があるかをサーバ側で確認しています。API キーが無くても、症状の一覧から手動で選べます。
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 動かし方
 
-## Contributing
+PHP 8.2 以上、Composer、Node.js が必要です。
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+npm install
+npm run build
+php artisan serve
+```
 
-## Code of Conduct
+`http://localhost:8000` で表示されます。
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+AI 機能を使う場合は `.env` に API キーを設定してください。
 
-## Security Vulnerabilities
+```dotenv
+GEMINI_API_KEY=your-api-key
+GEMINI_MODEL=gemini-2.5-flash
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+未設定でも予約自体はできます。その場合は症状を一覧から選ぶ形になります。
 
-## License
+## デモ用アカウント
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+シーダーで作成される確認用のアカウントです。
+
+- 顧客: `customer@example.com` / `password`
+- 管理者: `admin@example.com` / `password`
+
+## テスト
+
+```bash
+php artisan test
+```
+
+登録・ログイン、予約の作成とキャンセル、在庫の増減、予約枠の管理、AI の症状選択などを
+Feature テストで確認しています。
+
+## 今後やりたいこと
+
+- 予約ステータスの型付け（現在は文字列）
+- 未到店の判定を画面アクセス時ではなくスケジューラで行う
+- コントローラに集まっている処理をサービス層に分ける
+- メール通知、修理の進捗ステータス
