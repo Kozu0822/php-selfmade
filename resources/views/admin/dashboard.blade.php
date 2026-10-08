@@ -46,6 +46,14 @@
                                     <td>
                                         <div class="inline-actions">
                                             <a href="{{ route('admin.dashboard', ['tab' => 'reservations', 'reservation_id' => $reservation->id]) }}" class="btn btn-secondary btn-small">詳細を見る</a>
+                                            @if ($reservation->needsAiReview())
+                                                <form action="{{ route('admin.reservations.ai_review', $reservation) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-warning btn-small">要レビュー</button>
+                                                </form>
+                                            @elseif ($reservation->usedAi())
+                                                <span class="btn btn-muted btn-small" aria-disabled="true">レビュー済</span>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

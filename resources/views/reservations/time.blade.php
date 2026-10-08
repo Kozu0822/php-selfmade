@@ -14,6 +14,13 @@
             <div class="success">{{ session('message') }}</div>
         @endif
 
+        @if (session('reservation.symptom_text'))
+            <div class="ai-selection-note">
+                AI診断で選択された症状がご自身の認識と異なる場合は、
+                「戻る」から前の画面へ戻り、症状を手動で選択してください。
+            </div>
+        @endif
+
         <form action="{{ route('reservations.time.store') }}" method="POST">
             @csrf
 

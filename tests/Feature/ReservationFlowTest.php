@@ -31,9 +31,14 @@ class ReservationFlowTest extends TestCase
             'symptom_id' => $data['symptom']->id,
         ])->assertRedirect('/reservations/time');
 
+        $this->get('/reservations/time')
+            ->assertOk()
+            ->assertDontSee('AI診断で選択された症状がご自身の認識と異なる場合');
+
         $this->post('/reservations/time', [
             'time_slot_id' => $data['timeSlot']->id,
         ])->assertRedirect('/reservations/confirm');
+        $this->assertSame(1, session('reservation.time_slot_version'));
 
         $this->get('/reservations/confirm')
             ->assertOk()
@@ -52,6 +57,7 @@ class ReservationFlowTest extends TestCase
 
         $this->assertSame(1, $data['part']->fresh()->stock);
         $this->assertTrue($data['timeSlot']->fresh()->is_reserved);
+        $this->assertSame(2, $data['timeSlot']->fresh()->version);
     }
 
     public function test_customer_reservation_decreases_all_required_parts(): void
@@ -70,6 +76,7 @@ class ReservationFlowTest extends TestCase
             'reservation.device_id' => $data['device']->id,
             'reservation.symptom_id' => $data['symptom']->id,
             'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $data['timeSlot']->version,
         ]);
 
         $this->post('/reservations')->assertRedirect('/reservations/complete');
@@ -87,6 +94,7 @@ class ReservationFlowTest extends TestCase
             'reservation.device_id' => $data['device']->id,
             'reservation.symptom_id' => $data['symptom']->id,
             'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $data['timeSlot']->version,
         ]);
 
         $this->post('/reservations');
@@ -100,6 +108,28 @@ class ReservationFlowTest extends TestCase
         $this->assertFalse($data['timeSlot']->fresh()->is_reserved);
     }
 
+    public function test_repeated_cancel_does_not_restore_stock_twice(): void
+    {
+        $data = $this->prepareReservationData();
+        $this->actingAs($data['user']);
+
+        session([
+            'reservation.device_id' => $data['device']->id,
+            'reservation.symptom_id' => $data['symptom']->id,
+            'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $data['timeSlot']->version,
+        ]);
+
+        $this->post('/reservations');
+        $reservation = $data['user']->reservations()->first();
+
+        $this->post("/reservations/{$reservation->id}/cancel");
+        $this->post("/reservations/{$reservation->id}/cancel");
+
+        $this->assertSame('cancelled_by_user', $reservation->fresh()->status);
+        $this->assertSame(2, $data['part']->fresh()->stock);
+    }
+
     public function test_customer_can_cancel_no_show_reservation(): void
     {
         $data = $this->prepareReservationData();
@@ -109,6 +139,7 @@ class ReservationFlowTest extends TestCase
             'reservation.device_id' => $data['device']->id,
             'reservation.symptom_id' => $data['symptom']->id,
             'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $data['timeSlot']->version,
         ]);
 
         $this->post('/reservations');
@@ -132,6 +163,7 @@ class ReservationFlowTest extends TestCase
             'reservation.device_id' => $data['device']->id,
             'reservation.symptom_id' => $data['symptom']->id,
             'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $data['timeSlot']->version,
         ]);
 
         $this->post('/reservations');
@@ -168,6 +200,7 @@ class ReservationFlowTest extends TestCase
             'reservation.device_id' => $data['device']->id,
             'reservation.symptom_id' => $data['symptom']->id,
             'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $data['timeSlot']->version,
         ]);
 
         $this->post('/reservations');
@@ -178,6 +211,31 @@ class ReservationFlowTest extends TestCase
             ->assertRedirect('/admin?tab=reservations');
 
         $this->assertSame('cancelled_by_admin', $reservation->fresh()->status);
+        $this->assertSame(2, $data['part']->fresh()->stock);
+        $this->assertFalse($data['timeSlot']->fresh()->is_reserved);
+    }
+
+    public function test_stale_time_slot_version_cannot_create_reservation(): void
+    {
+        $data = $this->prepareReservationData();
+        $selectedVersion = $data['timeSlot']->version;
+
+        $this->actingAs($data['user']);
+        session([
+            'reservation.device_id' => $data['device']->id,
+            'reservation.symptom_id' => $data['symptom']->id,
+            'reservation.time_slot_id' => $data['timeSlot']->id,
+            'reservation.time_slot_version' => $selectedVersion,
+        ]);
+
+        // 別の処理で予約枠が更新された状態を再現する。
+        $data['timeSlot']->update(['version' => $selectedVersion + 1]);
+
+        $this->post('/reservations')
+            ->assertRedirect('/reservations/time')
+            ->assertSessionHasErrors('time_slot_id');
+
+        $this->assertDatabaseCount('reservations', 0);
         $this->assertSame(2, $data['part']->fresh()->stock);
         $this->assertFalse($data['timeSlot']->fresh()->is_reserved);
     }
@@ -317,6 +375,10 @@ class ReservationFlowTest extends TestCase
         ])->assertRedirect('/reservations/time');
 
         $this->assertSame($data['symptom']->id, session('reservation.symptom_id'));
+        $this->get('/reservations/time')
+            ->assertOk()
+            ->assertSee('AI診断で選択された症状がご自身の認識と異なる場合')
+            ->assertSee('症状を手動で選択してください');
     }
 
     public function test_ai_cannot_select_out_of_stock_symptom(): void

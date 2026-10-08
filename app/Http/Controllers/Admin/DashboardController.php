@@ -113,18 +113,40 @@ class DashboardController extends Controller
         DB::transaction(function () use ($reservation) {
             $reservation->load('parts', 'timeSlot');
 
+            $cancelled = Reservation::where('id', $reservation->id)
+                ->whereIn('status', ['pending', 'no_show'])
+                ->update([
+                    'status' => 'cancelled_by_admin',
+                    'cancelled_at' => now(),
+                ]);
+
+            if ($cancelled === 0) {
+                return;
+            }
+
             foreach ($reservation->parts as $part) {
                 $part->increment('stock');
             }
 
-            $reservation->timeSlot->update(['is_reserved' => false]);
-            $reservation->update([
-                'status' => 'cancelled_by_admin',
-                'cancelled_at' => now(),
+            TimeSlot::where('id', $reservation->timeSlot->id)->update([
+                'is_reserved' => false,
+                'version' => DB::raw('version + 1'),
             ]);
         });
 
         return redirect()->route('admin.dashboard', ['tab' => 'reservations']);
+    }
+
+    public function reviewAi(Reservation $reservation)
+    {
+        if ($reservation->usedAi() && $reservation->ai_reviewed_at === null) {
+            $reservation->update(['ai_reviewed_at' => now()]);
+        }
+
+        return redirect()->route('admin.dashboard', [
+            'tab' => 'reservations',
+            'reservation_id' => $reservation->id,
+        ]);
     }
 
     public function storeTimeSlot(Request $request)
@@ -175,7 +197,10 @@ class DashboardController extends Controller
     public function toggleTimeSlot(TimeSlot $timeSlot)
     {
         if (!$timeSlot->is_reserved) {
-            $timeSlot->update(['is_open' => !$timeSlot->is_open]);
+            $timeSlot->update([
+                'is_open' => !$timeSlot->is_open,
+                'version' => $timeSlot->version + 1,
+            ]);
         }
 
         return redirect()->route('admin.dashboard', ['tab' => 'time_slots']);

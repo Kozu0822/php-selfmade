@@ -14,6 +14,8 @@ class Reservation extends Model
         'symptom_id',
         'time_slot_id',
         'status',
+        'symptom_text',
+        'ai_reviewed_at',
         'cancelled_at',
     ];
 
@@ -21,7 +23,18 @@ class Reservation extends Model
     {
         return [
             'cancelled_at' => 'datetime',
+            'ai_reviewed_at' => 'datetime',
         ];
+    }
+
+    public function usedAi(): bool
+    {
+        return !empty($this->symptom_text);
+    }
+
+    public function needsAiReview(): bool
+    {
+        return $this->usedAi() && $this->ai_reviewed_at === null;
     }
 
     public function user(): BelongsTo

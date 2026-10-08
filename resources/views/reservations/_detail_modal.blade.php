@@ -21,6 +21,12 @@
                 <dt>症状</dt>
                 <dd>{{ $reservation->symptom->name }}</dd>
             </div>
+            @if (!empty($showCustomer) && $reservation->symptom_text)
+                <div class="modal-row">
+                    <dt>AI診断の入力内容</dt>
+                    <dd>{{ $reservation->symptom_text }}</dd>
+                </div>
+            @endif
             <div class="modal-row">
                 <dt>予約日時</dt>
                 <dd>{{ $reservation->timeSlot->slot_at->format('Y年n月j日 H:i') }}</dd>

@@ -42,6 +42,7 @@ Route::middleware('customer')->group(function () {
 Route::middleware('admin')->group(function () {
     Route::get('/admin', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::post('/admin/reservations/{reservation}/cancel', [DashboardController::class, 'cancel'])->name('admin.reservations.cancel');
+    Route::post('/admin/reservations/{reservation}/ai-review', [DashboardController::class, 'reviewAi'])->name('admin.reservations.ai_review');
     Route::post('/admin/time-slots', [DashboardController::class, 'storeTimeSlot'])->name('admin.time_slots.store');
     Route::post('/admin/time-slots/{timeSlot}/toggle', [DashboardController::class, 'toggleTimeSlot'])->name('admin.time_slots.toggle');
     Route::post('/admin/time-slots/{timeSlot}/delete', [DashboardController::class, 'destroyTimeSlot'])->name('admin.time_slots.destroy');

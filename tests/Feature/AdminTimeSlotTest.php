@@ -17,6 +17,20 @@ class AdminTimeSlotTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Carbon::setTestNow(Carbon::parse('2026-05-28 14:00:00', 'Asia/Tokyo'));
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_admin_can_create_time_slot(): void
     {
         $admin = $this->createAdmin();
@@ -166,7 +180,6 @@ class AdminTimeSlotTest extends TestCase
 
         $this->assertSame('no_show', $past->fresh()->status);
 
-        Carbon::setTestNow();
     }
 
     public function test_time_slot_page_shows_no_show_status(): void
@@ -184,7 +197,6 @@ class AdminTimeSlotTest extends TestCase
             ->assertSee('来店なし')
             ->assertDontSee('予約済み');
 
-        Carbon::setTestNow();
     }
 
     public function test_admin_can_cancel_no_show_reservation(): void
