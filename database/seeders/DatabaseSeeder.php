@@ -52,111 +52,79 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
         ]);
 
+        // ----- 端末 -----
         $iphone15 = Device::create(['name' => 'iPhone 15 Pro']);
         $iphone13 = Device::create(['name' => 'iPhone 13']);
         $iphone17 = Device::create(['name' => 'iPhone 17']);
         $ipad = Device::create(['name' => 'iPad Air 5th']);
         $macbook = Device::create(['name' => 'MacBook Air']);
 
-        $screen = Symptom::create([
-            'name' => '画面割れ',
-            'description' => '画面パネルの破損や表示不良がある状態です。',
-        ]);
+        // ----- 症状 -----
+        $screen = Symptom::create(['name' => '画面割れ', 'description' => '画面パネルの破損や表示不良がある状態です。']);
+        $battery = Symptom::create(['name' => 'バッテリー劣化', 'description' => '充電の減りが早い、電源が急に落ちる状態です。']);
+        $keyboard = Symptom::create(['name' => 'キーボード不良', 'description' => 'キー入力が反応しない、または一部のキーが故障している状態です。']);
+        $camera = Symptom::create(['name' => 'カメラ不良', 'description' => '写真がぼやける、カメラが起動しないなどの状態です。']);
+        $charging = Symptom::create(['name' => '充電できない', 'description' => '充電ケーブルを挿しても充電されない状態です。']);
+        $sound = Symptom::create(['name' => 'スピーカーの不具合', 'description' => '本体スピーカーから音が出ない、音が割れる、雑音が出る状態です。']);
+        $power = Symptom::create(['name' => '電源が入らない', 'description' => '電源ボタンを押しても起動しない状態です。']);
+        $back = Symptom::create(['name' => '背面ガラス割れ', 'description' => '本体背面のガラスが割れている状態です。']);
+        $water = Symptom::create(['name' => '水没', 'description' => '水濡れや水没により正常に動作しない状態です。']);
+        $consultation = Symptom::create(['name' => '来店相談', 'description' => '症状がはっきりしないため、店舗で確認する予約です。']);
 
-        $battery = Symptom::create([
-            'name' => 'バッテリー劣化',
-            'description' => '充電の減りが早い、電源が急に落ちる状態です。',
-        ]);
+        // ----- 端末ごとに選べる症状 -----
+        $iphoneSymptoms = [$screen, $battery, $camera, $charging, $sound, $power, $back, $water, $consultation];
+        foreach ([$iphone15, $iphone13, $iphone17] as $iphone) {
+            $iphone->symptoms()->attach(collect($iphoneSymptoms)->pluck('id')->all());
+        }
+        $ipad->symptoms()->attach([$screen->id, $battery->id, $camera->id, $charging->id, $sound->id, $consultation->id]);
+        $macbook->symptoms()->attach([$battery->id, $keyboard->id, $sound->id, $power->id, $consultation->id]);
 
-        $keyboard = Symptom::create([
-            'name' => 'キーボード不良',
-            'description' => 'キー入力が反応しない、または一部のキーが故障している状態です。',
-        ]);
+        // ----- 端末専用の部品（画面・バッテリー・キーボード）-----
+        $deviceParts = [
+            ['device' => $iphone15, 'name' => 'iPhone 15 Pro 画面パネル', 'stock' => 8, 'symptom' => $screen],
+            ['device' => $iphone13, 'name' => 'iPhone 13 画面パネル', 'stock' => 5, 'symptom' => $screen],
+            ['device' => $iphone17, 'name' => 'iPhone 17 画面パネル', 'stock' => 3, 'symptom' => $screen],
+            ['device' => $ipad, 'name' => 'iPad Air 5th 画面パネル', 'stock' => 6, 'symptom' => $screen],
+            ['device' => $iphone15, 'name' => 'iPhone 15 Pro バッテリー', 'stock' => 7, 'symptom' => $battery],
+            ['device' => $iphone13, 'name' => 'iPhone 13 バッテリー', 'stock' => 4, 'symptom' => $battery],
+            ['device' => $iphone17, 'name' => 'iPhone 17 バッテリー', 'stock' => 1, 'symptom' => $battery],
+            ['device' => $ipad, 'name' => 'iPad Air 5th バッテリー', 'stock' => 2, 'symptom' => $battery],
+            ['device' => $macbook, 'name' => 'MacBook Air バッテリー', 'stock' => 5, 'symptom' => $battery],
+            ['device' => $macbook, 'name' => 'MacBook Air キーボード', 'stock' => 9, 'symptom' => $keyboard],
+        ];
 
-        $consultation = Symptom::create([
-            'name' => '来店相談',
-            'description' => '症状がはっきりしないため、店舗で確認する予約です。',
-        ]);
+        foreach ($deviceParts as $row) {
+            $part = Part::create([
+                'device_id' => $row['device']->id,
+                'name' => $row['name'],
+                'stock' => $row['stock'],
+            ]);
+            $part->symptoms()->attach($row['symptom']->id);
+        }
 
-        $iphone15->symptoms()->attach([$screen->id, $battery->id, $consultation->id]);
-        $iphone13->symptoms()->attach([$screen->id, $battery->id, $consultation->id]);
-        $iphone17->symptoms()->attach([$screen->id, $battery->id, $consultation->id]);
-        $ipad->symptoms()->attach([$screen->id, $battery->id, $consultation->id]);
-        $macbook->symptoms()->attach([$battery->id, $keyboard->id, $consultation->id]);
+        // ----- 共通部品（全機種共通：device_id = null）-----
+        $commonParts = [
+            ['name' => 'カメラモジュール', 'stock' => 20, 'symptom' => $camera],
+            ['name' => '充電コネクタ', 'stock' => 20, 'symptom' => $charging],
+            ['name' => 'スピーカー', 'stock' => 20, 'symptom' => $sound],
+            ['name' => '基板（マザーボード）', 'stock' => 15, 'symptom' => $power],
+            ['name' => '背面パネル', 'stock' => 12, 'symptom' => $back],
+        ];
 
-        $iphone15Screen = Part::create([
-            'device_id' => $iphone15->id,
-            'name' => 'iPhone 15 Pro 画面パネル',
-            'stock' => 8,
-        ]);
+        foreach ($commonParts as $row) {
+            $part = Part::create([
+                'device_id' => null,
+                'name' => $row['name'],
+                'stock' => $row['stock'],
+            ]);
+            $part->symptoms()->attach($row['symptom']->id);
+        }
 
-        $iphone13Screen = Part::create([
-            'device_id' => $iphone13->id,
-            'name' => 'iPhone 13 画面パネル',
-            'stock' => 5,
-        ]);
+        // 水没は基板を使う（電源が入らないと共通の部品を流用）
+        $board = Part::where('name', '基板（マザーボード）')->first();
+        $board->symptoms()->attach($water->id);
 
-        $iphone17Screen = Part::create([
-            'device_id' => $iphone17->id,
-            'name' => 'iPhone 17 画面パネル',
-            'stock' => 3,
-        ]);
-
-        $ipadScreen = Part::create([
-            'device_id' => $ipad->id,
-            'name' => 'iPad Air 5th 画面パネル',
-            'stock' => 6,
-        ]);
-
-        $iphone15Battery = Part::create([
-            'device_id' => $iphone15->id,
-            'name' => 'iPhone 15 Pro バッテリー',
-            'stock' => 7,
-        ]);
-
-        $iphone13Battery = Part::create([
-            'device_id' => $iphone13->id,
-            'name' => 'iPhone 13 バッテリー',
-            'stock' => 4,
-        ]);
-
-        $iphone17Battery = Part::create([
-            'device_id' => $iphone17->id,
-            'name' => 'iPhone 17 バッテリー',
-            'stock' => 1,
-        ]);
-
-        $ipadBattery = Part::create([
-            'device_id' => $ipad->id,
-            'name' => 'iPad Air 5th バッテリー',
-            'stock' => 2,
-        ]);
-
-        $keyboardPart = Part::create([
-            'device_id' => $macbook->id,
-            'name' => 'MacBook Air キーボード',
-            'stock' => 9,
-        ]);
-
-        $macbookBattery = Part::create([
-            'device_id' => $macbook->id,
-            'name' => 'MacBook Air バッテリー',
-            'stock' => 5,
-        ]);
-
-        $iphone15Screen->symptoms()->attach($screen->id);
-        $iphone13Screen->symptoms()->attach($screen->id);
-        $iphone17Screen->symptoms()->attach($screen->id);
-        $ipadScreen->symptoms()->attach($screen->id);
-        $iphone15Battery->symptoms()->attach($battery->id);
-        $iphone13Battery->symptoms()->attach($battery->id);
-        $iphone17Battery->symptoms()->attach($battery->id);
-        $ipadBattery->symptoms()->attach($battery->id);
-        $macbookBattery->symptoms()->attach($battery->id);
-        $keyboardPart->symptoms()->attach($keyboard->id);
-
-        $devices = [$iphone15, $iphone13, $iphone17, $ipad, $macbook];
-        $symptoms = [$screen, $battery, $keyboard, $consultation];
+        // ----- 予約枠 -----
         $times = [
             [10, 0], [10, 20], [10, 40],
             [11, 0], [11, 20], [11, 40],
@@ -176,10 +144,25 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
+        // ----- サンプル予約（一部はAI診断利用として入力文を保存）-----
+        $devices = [$iphone15, $iphone13, $iphone17, $ipad, $macbook];
+        $aiTexts = [
+            '画面割れ' => '落としてしまい、画面が割れて表示がおかしいです。',
+            'バッテリー劣化' => '充電してもすぐに電池が減ってしまいます。',
+            'カメラ不良' => 'カメラを起動すると画面が真っ暗で写真が撮れません。',
+            '充電できない' => 'ケーブルを挿しても充電のマークが出ません。',
+            'スピーカーの不具合' => '音楽を再生しても本体スピーカーから音が出ません。',
+        ];
+
         foreach (array_slice($timeSlots, 0, 12) as $index => $timeSlot) {
             $device = $devices[$index % count($devices)];
             $availableSymptoms = $device->symptoms()->get();
             $symptom = $availableSymptoms[$index % $availableSymptoms->count()];
+
+            // 最初の5件は AI 診断利用の予約として入力文を保存
+            $symptomText = ($index < 5 && isset($aiTexts[$symptom->name]))
+                ? $aiTexts[$symptom->name]
+                : null;
 
             $reservation = Reservation::create([
                 'user_id' => $customers[$index]->id,
@@ -187,6 +170,7 @@ class DatabaseSeeder extends Seeder
                 'symptom_id' => $symptom->id,
                 'time_slot_id' => $timeSlot->id,
                 'status' => 'pending',
+                'symptom_text' => $symptomText,
             ]);
 
             $reservationParts = $symptom->parts()

@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ReservationConflictException;
 use App\Models\Device;
 use App\Models\Part;
 use App\Models\Reservation;
 use App\Models\Symptom;
 use App\Models\TimeSlot;
+use App\Services\SymptomAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 
 class ReservationController extends Controller
 {
@@ -80,11 +81,12 @@ class ReservationController extends Controller
         }
 
         session(['reservation.symptom_id' => $data['symptom_id']]);
+        session()->forget('reservation.symptom_text');
 
         return redirect()->route('reservations.time');
     }
 
-    public function suggestSymptom(Request $request)
+    public function suggestSymptom(Request $request, SymptomAiService $aiService)
     {
         $device = $this->selectedDevice();
         if (!$device) {
@@ -120,7 +122,7 @@ class ReservationController extends Controller
                 ->withErrors(['symptom_text' => '現在選択できる症状がありません。']);
         }
 
-        $aiResult = $this->askGeminiForSymptom($device, $availableSymptoms, $data['symptom_text']);
+        $aiResult = $aiService->suggest($device, $availableSymptoms, $data['symptom_text']);
         $symptomId = $aiResult['symptom_id'];
         $advice = $aiResult['advice'];
         $symptom = $symptomId ? Symptom::find($symptomId) : null;
@@ -147,7 +149,10 @@ class ReservationController extends Controller
                 ->with('ai_recommendation', '必要であれば「'.$symptom->name.'」として予約できます。');
         }
 
-        session(['reservation.symptom_id' => $symptom->id]);
+        session([
+            'reservation.symptom_id' => $symptom->id,
+            'reservation.symptom_text' => $data['symptom_text'],
+        ]);
 
         return redirect()
             ->route('reservations.time')
@@ -191,7 +196,10 @@ class ReservationController extends Controller
                 ->withErrors(['time_slot_id' => '選択した予約時間は利用できません。']);
         }
 
-        session(['reservation.time_slot_id' => $data['time_slot_id']]);
+        session([
+            'reservation.time_slot_id' => $timeSlot->id,
+            'reservation.time_slot_version' => $timeSlot->version,
+        ]);
 
         return redirect()->route('reservations.confirm');
     }
@@ -201,8 +209,9 @@ class ReservationController extends Controller
         $device = $this->selectedDevice();
         $symptom = $this->selectedSymptom();
         $timeSlot = $this->selectedTimeSlot();
+        $timeSlotVersion = $this->selectedTimeSlotVersion();
 
-        if (!$device || !$symptom || !$timeSlot) {
+        if (!$device || !$symptom || !$timeSlot || $timeSlotVersion === null) {
             return redirect()->route('reservations.create');
         }
 
@@ -218,8 +227,9 @@ class ReservationController extends Controller
         $device = $this->selectedDevice();
         $symptom = $this->selectedSymptom();
         $timeSlot = $this->selectedTimeSlot();
+        $timeSlotVersion = $this->selectedTimeSlotVersion();
 
-        if (!$device || !$symptom || !$timeSlot) {
+        if (!$device || !$symptom || !$timeSlot || $timeSlotVersion === null) {
             return redirect()->route('reservations.create');
         }
 
@@ -237,22 +247,54 @@ class ReservationController extends Controller
                 ->withErrors(['time_slot_id' => '選択した予約時間は利用できません。']);
         }
 
-        DB::transaction(function () use ($device, $symptom, $timeSlot, $parts) {
-            $reservation = Reservation::create([
-                'user_id' => Auth::id(),
-                'device_id' => $device->id,
-                'symptom_id' => $symptom->id,
-                'time_slot_id' => $timeSlot->id,
-                'status' => 'pending',
-            ]);
+        try {
+            DB::transaction(function () use ($device, $symptom, $timeSlot, $timeSlotVersion, $parts) {
+                $reserved = TimeSlot::where('id', $timeSlot->id)
+                    ->where('version', $timeSlotVersion)
+                    ->where('is_open', true)
+                    ->where('is_reserved', false)
+                    ->where('slot_at', '>', now())
+                    ->update([
+                        'is_reserved' => true,
+                        'version' => $timeSlotVersion + 1,
+                    ]);
 
-            foreach ($parts as $part) {
-                Part::where('id', $part->id)->decrement('stock');
-                $reservation->parts()->attach($part->id);
+                if ($reserved === 0) {
+                    throw new ReservationConflictException('time_slot');
+                }
+
+                $reservation = Reservation::create([
+                    'user_id' => Auth::id(),
+                    'device_id' => $device->id,
+                    'symptom_id' => $symptom->id,
+                    'time_slot_id' => $timeSlot->id,
+                    'status' => 'pending',
+                    'symptom_text' => session('reservation.symptom_text'),
+                ]);
+
+                foreach ($parts as $part) {
+                    $decremented = Part::where('id', $part->id)
+                        ->where('stock', '>=', 1)
+                        ->decrement('stock');
+
+                    if ($decremented === 0) {
+                        throw new ReservationConflictException('stock');
+                    }
+
+                    $reservation->parts()->attach($part->id);
+                }
+            });
+        } catch (ReservationConflictException $exception) {
+            if ($exception->reason === 'time_slot') {
+                return redirect()
+                    ->route('reservations.time')
+                    ->withErrors(['time_slot_id' => '選択した予約時間は他の予約で埋まったため利用できません。別の時間を選択してください。']);
             }
 
-            $timeSlot->update(['is_reserved' => true]);
-        });
+            return redirect()
+                ->route('reservations.confirm')
+                ->withErrors(['parts' => '必要な部品の在庫が不足しています。']);
+        }
 
         session()->forget('reservation');
 
@@ -273,14 +315,25 @@ class ReservationController extends Controller
         DB::transaction(function () use ($reservation) {
             $reservation->load('parts', 'timeSlot');
 
+            $cancelled = Reservation::where('id', $reservation->id)
+                ->where('user_id', Auth::id())
+                ->whereIn('status', ['pending', 'no_show'])
+                ->update([
+                    'status' => 'cancelled_by_user',
+                    'cancelled_at' => now(),
+                ]);
+
+            if ($cancelled === 0) {
+                return;
+            }
+
             foreach ($reservation->parts as $part) {
                 Part::where('id', $part->id)->increment('stock');
             }
 
-            $reservation->timeSlot->update(['is_reserved' => false]);
-            $reservation->update([
-                'status' => 'cancelled_by_user',
-                'cancelled_at' => now(),
+            TimeSlot::where('id', $reservation->timeSlot->id)->update([
+                'is_reserved' => false,
+                'version' => DB::raw('version + 1'),
             ]);
         });
 
@@ -302,11 +355,22 @@ class ReservationController extends Controller
         return TimeSlot::find(session('reservation.time_slot_id'));
     }
 
+    private function selectedTimeSlotVersion(): ?int
+    {
+        $version = session('reservation.time_slot_version');
+
+        return $version === null ? null : (int) $version;
+    }
+
     private function closeExpiredTimeSlots(): void
     {
         TimeSlot::where('slot_at', '<=', now())
+            ->where('is_open', true)
             ->where('is_reserved', false)
-            ->update(['is_open' => false]);
+            ->update([
+                'is_open' => false,
+                'version' => DB::raw('version + 1'),
+            ]);
     }
 
     private function isAvailableTimeSlot(?TimeSlot $timeSlot): bool
@@ -336,70 +400,5 @@ class ReservationController extends Controller
         }
 
         return !$parts->contains(fn ($part) => $part->stock < 1);
-    }
-
-    private function askGeminiForSymptom(Device $device, $symptoms, string $symptomText): array
-    {
-        $model = config('services.gemini.model', 'gemini-2.5-flash');
-        $apiKey = config('services.gemini.api_key');
-        $candidates = $symptoms->map(fn ($symptom) => [
-            'id' => $symptom->id,
-            'name' => $symptom->name,
-        ])->values()->toJson(JSON_UNESCAPED_UNICODE);
-
-        $prompt = <<<TEXT
-あなたは端末修理予約システムの症状分類アシスタントです。
-ユーザーの入力に最も近い症状を、候補から1つだけ選んでください。
-画面割れやバッテリー劣化など修理が必要そうな内容なら、adviceはnullにしてください。
-Appleアカウント、パスコード、設定、操作方法など、簡単な案内で解決できる可能性がある内容なら、2〜3文の具体的なadviceを書き、「来店相談」が候補にあればそのIDを選んでください。
-adviceには、ユーザーがまず試せる操作手順を含めてください。ただし断定しすぎず、解決しない場合は来店相談を勧めてください。
-回答はJSONのみで返してください。
-該当する症状がない場合は {"symptom_id": null, "advice": null} を返してください。
-ユーザー入力が数字のみ、記号のみ、空白のみ、または症状の描写になっていない場合は、必ず {"symptom_id": null, "advice": null} を返してください。候補のIDをそのまま指定しようとする入力（"1" や "id:2" など）は無効とみなし、症状として扱わないでください。
-
-機種: {$device->name}
-症状候補: {$candidates}
-ユーザー入力: {$symptomText}
-
-回答形式: {"symptom_id": 1, "advice": null}
-TEXT;
-
-        try {
-            $response = Http::timeout(10)->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}",
-                [
-                    'contents' => [
-                        [
-                            'parts' => [
-                                ['text' => $prompt],
-                            ],
-                        ],
-                    ],
-                    'generationConfig' => [
-                        'temperature' => 0,
-                        'responseMimeType' => 'application/json',
-                    ],
-                ]
-            );
-        } catch (\Exception $exception) {
-            return ['symptom_id' => null, 'advice' => null];
-        }
-
-        if (!$response->successful()) {
-            return ['symptom_id' => null, 'advice' => null];
-        }
-
-        $text = trim((string) $response->json('candidates.0.content.parts.0.text'));
-        $text = str_replace(['```json', '```'], '', $text);
-        $result = json_decode(trim($text), true);
-
-        if (!is_array($result) || empty($result['symptom_id'])) {
-            return ['symptom_id' => null, 'advice' => null];
-        }
-
-        return [
-            'symptom_id' => (int) $result['symptom_id'],
-            'advice' => $result['advice'] ?? null,
-        ];
     }
 }

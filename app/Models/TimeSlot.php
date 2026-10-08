@@ -10,10 +10,15 @@ class TimeSlot extends Model
 {
     use SoftDeletes;
 
+    protected $attributes = [
+        'version' => 1,
+    ];
+
     protected $fillable = [
         'slot_at',
         'is_open',
         'is_reserved',
+        'version',
     ];
 
     protected function casts(): array
@@ -22,6 +27,7 @@ class TimeSlot extends Model
             'slot_at' => 'datetime',
             'is_open' => 'boolean',
             'is_reserved' => 'boolean',
+            'version' => 'integer',
         ];
     }
 

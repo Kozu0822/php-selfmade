@@ -529,6 +529,18 @@
             margin: 0 0 12px;
         }
 
+        .ai-selection-note {
+            margin: 0 0 20px;
+            padding: 12px 14px;
+            border: 1px solid #b8dcf7;
+            border-radius: 8px;
+            background: #eef8ff;
+            color: #315b78;
+            font-size: 14px;
+            line-height: 1.7;
+            text-align: left;
+        }
+
         .ai-box textarea {
             width: 100%;
             min-height: 72px;
